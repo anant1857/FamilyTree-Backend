@@ -113,31 +113,54 @@ async function inferRelationships(member1Id, member2Id, relationshipType) {
         }
       }
     } else if (relationshipType === "spouse") {
-      // When setting a spouse relationship, link both as parents to any existing children
+      // Only link both as parents to their EXISTING shared children (if any)
       const member1Children = await findAllChildren(member1Id)
       const member2Children = await findAllChildren(member2Id)
 
-      // Link all of member1's children and descendants to member2
+      // Link all of member1's children to member2 as parent
       for (const child of member1Children) {
         await createOrUpdateRelationship(member2Id, child, "parent", "forward")
         await createOrUpdateRelationship(child, member2Id, "child", "forward")
       }
 
-      // Link all of member2's children and descendants to member1
+      // Link all of member2's children to member1 as parent
       for (const child of member2Children) {
         await createOrUpdateRelationship(member1Id, child, "parent", "forward")
         await createOrUpdateRelationship(child, member1Id, "child", "forward")
       }
 
-      const member1Ancestors = await findAllAncestors(member1Id)
-      const member2Ancestors = await findAllAncestors(member2Id)
-
-      for (const ancestor of member1Ancestors) {
-        await createOrUpdateRelationship(ancestor, member2Id, "parent", "forward")
+      // Spouses come from different families and should keep their own family lines
+    } else if (relationshipType === "sibling") {
+      const member2Parents = await findAllAncestors(member2Id)
+      if (member2Parents.length > 0) {
+        for (const parent of member2Parents) {
+          await createOrUpdateRelationship(parent, member1Id, "parent", "forward")
+          await createOrUpdateRelationship(member1Id, parent, "child", "forward")
+        }
       }
 
-      for (const ancestor of member2Ancestors) {
-        await createOrUpdateRelationship(ancestor, member1Id, "parent", "forward")
+      const member1Parents = await findAllAncestors(member1Id)
+      if (member1Parents.length > 0) {
+        for (const parent of member1Parents) {
+          await createOrUpdateRelationship(parent, member2Id, "parent", "forward")
+          await createOrUpdateRelationship(member2Id, parent, "child", "forward")
+        }
+      }
+
+      const member2Descendants = await findAllDescendants(member2Id)
+      if (member2Descendants.length > 0) {
+        for (const descendant of member2Descendants) {
+          await createOrUpdateRelationship(member1Id, descendant, "parent", "forward")
+          await createOrUpdateRelationship(descendant, member1Id, "child", "forward")
+        }
+      }
+
+      const member1Descendants = await findAllDescendants(member1Id)
+      if (member1Descendants.length > 0) {
+        for (const descendant of member1Descendants) {
+          await createOrUpdateRelationship(member2Id, descendant, "parent", "forward")
+          await createOrUpdateRelationship(descendant, member2Id, "child", "forward")
+        }
       }
     }
   } catch (error) {

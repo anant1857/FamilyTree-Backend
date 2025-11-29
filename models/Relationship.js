@@ -13,7 +13,7 @@ const relationshipSchema = new mongoose.Schema({
   },
   relationshipType: {
     type: String,
-    enum: ["parent", "child", "spouse", "sibling"],
+    enum: ["parent", "child", "spouse", "sibling", "grandparent", "grandchild"],
     required: true,
   },
   direction: {
